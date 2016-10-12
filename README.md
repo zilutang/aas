@@ -34,5 +34,6 @@ The source to accompany the 2nd edition is found in this, the default
 - Chapter 9: (see `ch09-risk/data/download-all-symbols.sh` script)
 - Chapter 10: ftp://ftp.ncbi.nih.gov/1000genomes/ftp/phase3/data/HG00103/alignment/HG00103.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam
 - Chapter 11: https://github.com/thunder-project/thunder/tree/v0.4.1/python/thunder/utils/data/fish/tif-stack
+- Chapter ??: https://archive.ics.uci.edu/ml/datasets/PAMAP2+Physical+Activity+Monitoring
 
 [![Build Status](https://travis-ci.org/sryza/aas.png?branch=master)](https://travis-ci.org/sryza/aas)
