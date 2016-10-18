@@ -5,6 +5,7 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StructField
 from pyspark.sql.types import StructType
 from pyspark.sql.types import DoubleType
+from pyspark.sql import functions as F
 
 PATH = '/Users/juliet/data/PAMAP2_Dataset/Protocol'
 
@@ -19,9 +20,9 @@ SENSOR_LOCATIONS = ['hand', 'chest', 'ankle']
 ALL_SENSOR_FIELDS = ['-'.join([loc, name]) for loc in SENSOR_LOCATIONS for
                               name in SENSOR_FIELDS]
 
-SCHEMA = StructType([StructField('subjectid', DoubleType(), True),
+SCHEMA = StructType([StructField('subject_id', DoubleType(), True),
                      StructField('ts', DoubleType(), True),
-		             StructField('activityID', DoubleType(), True),
+		             StructField('activity_id', DoubleType(), True),
                      StructField('hr', DoubleType(), True)] +
                      [StructField(fieldname, DoubleType(), True) for
                      fieldname in  ALL_SENSOR_FIELDS])
@@ -55,8 +56,23 @@ obs_rdd = sc.union(obs_rdds)
 df = spark.createDataFrame(obs_rdd, SCHEMA)
 
 # The orientation measurements are invalid, so we should drop them.
-cols_to_drop = [field for field in ALL_SENSOR_FIELDS if "orient" in field]
-assert len(cols_to_drop) == 12, "col len is {}".format(cols_to_drop)
-print("XX{}".format(cols_to_drop))
+# The 6G accelerometers readings get saturated for some readings, so
+# we will drop them in favor of the 16G sensors.
+cols_to_drop = [field for field in ALL_SENSOR_FIELDS if ("orient" in field)
+                or ("-6" in field)]
+# Remove orientation columns because they are invalid
 new = df.select([col for col in df.columns if col not in cols_to_drop])
-print(new.take(1))
+
+# Do feature generation
+# https://issues.apache.org/jira/browse/SPARK-10915
+# for each person and activity, create a dense vector.
+# since pyspark does not have UDAFs we must do a 'collectlist'
+# Either a numpy array or a list will be interpretted as a dense vector
+vectorized_series = new.groupBy(new.subject_id, new.activity_id).agg(
+    F.collect_list("hand-temp"))
+
+# summary stats on an activity
+
+# Get frequency space representation using DCT
+
+print(vectorized_series.take(1))
