@@ -51,6 +51,7 @@ object RunGraph extends Serializable {
     val vertices = topics.map{ case Row(topic: String) => (hashId(topic), topic) }
     val edges = cooccurs.map{ case Row(topics: Seq[_], cnt: Long) => {
        val ids = topics.map(_.toString).map(hashId).sorted
+       Edge(ids(0), ids(1), cnt)
       }
     }
     val topicGraph = Graph(vertices.rdd, edges.rdd)
