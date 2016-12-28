@@ -6,6 +6,8 @@ from pyspark.sql.types import StructField
 from pyspark.sql.types import StructType
 from pyspark.sql.types import DoubleType
 from pyspark.sql import functions as F
+from pyspark.ml.feature import StringIndexer
+from pyspark.ml.feature import VectorAssembler
 
 PATH = '/Users/juliet/data/PAMAP2_Dataset/Protocol'
 
@@ -63,6 +65,43 @@ cols_to_drop = [field for field in ALL_SENSOR_FIELDS if ("orient" in field)
 # Remove orientation columns because they are invalid
 new = df.select([col for col in df.columns if col not in cols_to_drop])
 
+mean_vals_df = new.groupBy(new.subject_id, new.activity_id).mean()
+max_vals_df = new.groupBy(new.subject_id, new.activity_id).max()
+min_vals_df = new.groupBy(new.subject_id, new.activity_id).min()
+
+mean_max_jnd = mean_vals_df.join(max_vals_df,
+                  (mean_vals_df.subject_id == max_vals_df.subject_id)
+                & (mean_vals_df.activity_id == max_vals_df.activity_id))
+mean_max_min_jnd = mean_max_jnd.join(min_vals_df,
+                  (mean_max_jnd.subject_id == min_vals_df.subject_id)
+                & (mean_max_jnd.activity_id == min_vals_df.activity_id))
+
+# trigger execution and see if this worked at all
+print(mean_max_min_jnd.take(1))
+
+# we have some stats on each of these sensors now, so lets see if they are
+# at all useful in predicting the type of activity:
+# now each row in our df correspond to an label- featurevector pair. it is
+# tidy data from the perspective of trying to attach labels to this tyoe of
+# info.
+
+# feature vector column maker
+# figure out how to easily get all the numeirc columsn together
+assembler = VectorAssembler(
+    inputCols = ['sytuffffff1', 'stuffff2'],
+    outputCol = 'features')
+
+# string indexer for label generation
+plan_indexer = StringIndexer(inputCol = 'activity-id',
+                             outputCol = 'activity-type')
+
+
+
+# toss some algorithm at it, random forests?
+# Reg trees?
+
+
+
 # Do feature generation
 # https://issues.apache.org/jira/browse/SPARK-10915
 # for each person and activity, create a dense vector.
@@ -71,8 +110,14 @@ new = df.select([col for col in df.columns if col not in cols_to_drop])
 vectorized_series = new.groupBy(new.subject_id, new.activity_id).agg(
     F.collect_list("hand-temp"))
 
+# groupbys are expensive, cache this
+vectorized_series.cache()
+
 # summary stats on an activity
+# <subjct id, activity id, {mean, min, max, 75%, 25%}x{hr, acc}>
 
 # Get frequency space representation using DCT
+#<subject id, activity id, DCT{gy-?, mag-?}>
+# Probably first need to order list.
 
 print(vectorized_series.take(1))
